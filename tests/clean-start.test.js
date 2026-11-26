@@ -1,0 +1,33 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { Store } = require('../src/main/store');
+const logic = require('../src/main/api');
+
+test('instalasi database baru hanya memuat konfigurasi awal, tanpa data murid/nilai percobaan', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rapor-clean-start-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const store = new Store(dir);
+  logic.init(store, { desktop: true, development: true });
+  const result = logic.api({ aksi: 'muat' });
+  assert.equal(result.ok, true, result.error);
+  const d = result.data;
+  assert.equal(d.murid.length, 0);
+  assert.equal(d.tp.length, 0);
+  assert.equal(d.lingkupMateri.length, 0);
+  assert.equal(d.nilai.length, 0);
+  assert.ok(d.mapel.length > 0, 'paket mata pelajaran bawaan tersedia');
+  assert.ok(d.ekskul.length > 0, 'paket ekstrakurikuler bawaan tersedia');
+  assert.equal(d.pengaturan.bobot_lm, '50');
+  assert.equal(d.pengaturan.bobot_sas, '50');
+  assert.equal(d.pengaturan.nama_sekolah, 'SDS Islam Terpadu Sulthoniyah Sambas');
+  assert.equal(d.pengaturan.npsn, '69978393');
+  assert.ok(d.pengaturan.logo.startsWith('data:image/png;base64,'), 'logo sekolah tersedia tanpa unggah manual');
+  assert.ok(d.pengaturan.leger_logo_kiri.startsWith('data:image/'), 'logo kop kiri tersedia');
+  assert.ok(d.pengaturan.leger_logo_kanan.startsWith('data:image/'), 'logo kop kanan tersedia');
+  assert.equal(d.pengaturan.leger_kop_baris2, 'SDS ISLAM TERPADU SULTHONIYAH SAMBAS');
+  assert.equal(fs.existsSync(store.file), true);
+});
